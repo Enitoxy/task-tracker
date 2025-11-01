@@ -1,6 +1,5 @@
 import os
 import sqlite3
-import uvicorn
 
 from datetime import datetime
 from fastapi import FastAPI
