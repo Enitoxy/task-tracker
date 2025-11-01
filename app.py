@@ -126,3 +126,77 @@ def start_task(task_id: int):
     conn.commit()
     conn.close()
     return {"status": "success"}
+
+
+@app.post("/api/tasks/{task_id}/pause")
+async def pause_task(task_id: int):
+    conn = get_db()
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+
+    c.execute("SELECT last_started, total_elapsed FROM tasks WHERE id = ?", (task_id,))
+    row = c.fetchone()
+
+    if not row:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    if row["last_started"]:
+        last_started = datetime.fromisoformat(row["last_started"])
+        elapsed = (datetime.now() - last_started).total_seconds()
+        new_total = row["total_elapsed"] + elapsed
+
+        c.execute(
+            """
+            UPDATE tasks
+            SET status = 'paused',
+                total_elapsed = ?,
+                last_started = NULL
+            WHERE id = ?
+            """,
+            (new_total, task_id),
+        )
+
+    conn.commit()
+    conn.close()
+    return {"status": "success"}
+
+
+@app.post("/api/tasks/{task_id}/complete")
+async def complete_task(task_id: int):
+    conn = get_db()
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+
+    c.execute(
+        "SELECT last_started, total_elapsed, status FROM tasks WHERE id = ?",
+        (task_id,),
+    )
+    row = c.fetchone()
+
+    if not row:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    total_elapsed = row["total_elapsed"]
+    if row["last_started"] and row["status"] == "active":
+        last_started = datetime.fromisoformat(row["last_started"])
+        elapsed = (datetime.now() - last_started).total_seconds()
+        total_elapsed += elapsed
+
+    now = datetime.now().isoformat()
+    c.execute(
+        """
+        UPDATE tasks
+        SET status = 'completed',
+            completed_at = ?,
+            total_elapsed = ?,
+            last_started = NULL
+        WHERE id = ?
+        """,
+        (now, total_elapsed, task_id),
+    )
+
+    conn.commit()
+    conn.close()
+    return {"status": "success"}
