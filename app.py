@@ -100,3 +100,29 @@ def delete_task(task_id: int):
     conn.commit()
     conn.close()
     return {"deleted_id": task_id, "status": "success"}
+
+
+@app.post("/api/tasks/{task_id}/start")
+def start_task(task_id: int):
+    conn = get_db()
+    cur = conn.cursor()
+    now = datetime.now().isoformat()
+
+    cur.execute(
+        """
+        UPDATE tasks 
+        SET status = 'active',
+            started_at = COALESCE(started_at, ?),
+            last_started = ?
+        WHERE id = ?
+        """,
+        (now, now, task_id),
+    )
+
+    if cur.rowcount == 0:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    conn.commit()
+    conn.close()
+    return {"status": "success"}
