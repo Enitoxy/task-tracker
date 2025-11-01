@@ -1,7 +1,7 @@
 let tasks = [];
 let timers = {};
 
-const BASE_URL = "localhost:8080";
+const BASE_URL = "http://localhost:8080";
 
 async function loadTasks() {
     const res = await fetch(`${BASE_URL}/api/tasks`);
