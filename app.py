@@ -81,5 +81,22 @@ def create_task(task: TaskCreate):
     return {"id": task_id, "status": "success"}
 
 
-if __name__ == "__main__":
-    uvicorn.run(app=app, host="0.0.0.0", port=8080)
+@app.delete("/api/tasks/{task_id}")
+def delete_task(task_id: int):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        DELETE FROM tasks
+        WHERE ID = ?
+        """,
+        (task_id,),
+    )
+
+    if cur.rowcount == 0:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    conn.commit()
+    conn.close()
+    return {"deleted_id": task_id, "status": "success"}
