@@ -141,10 +141,12 @@ def start_task(task_id: int):
 async def pause_task(task_id: int):
     conn = get_db()
     conn.row_factory = sqlite3.Row
-    c = conn.cursor()
+    cur = conn.cursor()
 
-    c.execute("SELECT last_started, total_elapsed FROM tasks WHERE id = ?", (task_id,))
-    row = c.fetchone()
+    cur.execute(
+        "SELECT last_started, total_elapsed FROM tasks WHERE id = ?", (task_id,)
+    )
+    row = cur.fetchone()
 
     if not row:
         conn.close()
@@ -155,7 +157,7 @@ async def pause_task(task_id: int):
         elapsed = (datetime.now() - last_started).total_seconds()
         new_total = row["total_elapsed"] + elapsed
 
-        c.execute(
+        cur.execute(
             """
             UPDATE tasks
             SET status = 'paused',
@@ -175,13 +177,13 @@ async def pause_task(task_id: int):
 async def complete_task(task_id: int):
     conn = get_db()
     conn.row_factory = sqlite3.Row
-    c = conn.cursor()
+    cur = conn.cursor()
 
-    c.execute(
+    cur.execute(
         "SELECT last_started, total_elapsed, status FROM tasks WHERE id = ?",
         (task_id,),
     )
-    row = c.fetchone()
+    row = cur.fetchone()
 
     if not row:
         conn.close()
@@ -194,7 +196,7 @@ async def complete_task(task_id: int):
         total_elapsed += elapsed
 
     now = datetime.now().isoformat()
-    c.execute(
+    cur.execute(
         """
         UPDATE tasks
         SET status = 'completed',
